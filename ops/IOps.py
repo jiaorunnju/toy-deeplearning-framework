@@ -69,18 +69,12 @@ class IOperation:
             raise NotImplementedError
 
     def __mul__(self, other):
-        if isinstance(other, (int,float)):
+        if isinstance(other, (int, float)):
             from ops.operations import MulNumOp
             return MulNumOp(self, other)
         else:
             raise NotImplementedError
 
-    def __div__(self, other):
-        if isinstance(other, (int, float)):
-            from ops.operations import MulNumOp
-            return MulNumOp(self, 1/other)
-        else:
-            raise NotImplementedError
 
 class ITrainable:
     """
