@@ -1,6 +1,6 @@
 import numpy as np
-from ops import *
-from optimizer import GradientDescent
+from dllib.ops import *
+from dllib.optimizer import GradientDescent
 
 N = 1000
 w0 = np.array([1.0, 2.0])

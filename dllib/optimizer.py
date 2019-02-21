@@ -1,4 +1,4 @@
-from ops import IOperation
+from dllib.ops import IOperation
 from abc import abstractmethod
 from numpy import array
 

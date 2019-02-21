@@ -1,4 +1,4 @@
-from ops.IOps import UnaryOp, IOperation
+from dllib.ops import UnaryOp, IOperation
 from numpy import ndarray
 
 
