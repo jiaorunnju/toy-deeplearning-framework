@@ -120,7 +120,7 @@ class ComputableOp(IOperation):
         self.data: ndarray = None
 
     @abstractmethod
-    def compute(self) -> ndarray:
+    def compute_value(self) -> ndarray:
         """
         compute output of current node
         :return: output of current node
@@ -133,7 +133,7 @@ class ComputableOp(IOperation):
         :return: cached result
         """
         if not self.computed:
-            self.data = self.compute()
+            self.data = self.compute_value()
             self.computed = True
         return self.data
 

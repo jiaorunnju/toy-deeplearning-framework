@@ -11,7 +11,7 @@ class MSE(UnaryOp):
         super().__init__(pred)
         self.label = label
 
-    def compute(self):
+    def compute_value(self):
         t = self.op.forward() - self.label.forward()
         n = len(t)
         return t.dot(t)/n
@@ -31,7 +31,7 @@ class AbsoluteLoss(UnaryOp):
         super().__init__(pred)
         self.label = label
 
-    def compute(self):
+    def compute_value(self):
         t = self.op.forward() - self.label.forward()
         n = len(t)
         return sum(abs(t))/n

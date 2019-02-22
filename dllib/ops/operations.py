@@ -122,7 +122,7 @@ class AddOp(BinaryOp):
         else:
             return False, None
 
-    def compute(self):
+    def compute_value(self):
         return self.op1.forward() + self.op2.forward()
 
     def backward(self, gradient: ndarray):
@@ -143,7 +143,7 @@ class SubOp(BinaryOp):
         else:
             return False, None
 
-    def compute(self):
+    def compute_value(self):
         return self.op1.forward() - self.op2.forward()
 
     def backward(self, gradient: ndarray):
@@ -159,7 +159,7 @@ class MulNumOp(UnaryOp):
         super().__init__(op)
         self.num = num
 
-    def compute(self) -> ndarray:
+    def compute_value(self) -> ndarray:
         return self.op.forward() * self.num
 
     def backward(self, gradient: ndarray):
@@ -175,7 +175,7 @@ class AddNumOp(UnaryOp):
         super().__init__(op)
         self.num = num
 
-    def compute(self) -> ndarray:
+    def compute_value(self) -> ndarray:
         return self.op.forward() + self.num
 
     def backward(self, gradient: ndarray):
@@ -191,7 +191,7 @@ class SubNumOp(UnaryOp):
         super().__init__(op)
         self.num = num
 
-    def compute(self) -> ndarray:
+    def compute_value(self) -> ndarray:
         return self.op.forward() - self.num
 
     def backward(self, gradient: ndarray):
@@ -207,7 +207,7 @@ class DivNumOp(UnaryOp):
         super().__init__(op)
         self.num = num
 
-    def compute(self) -> ndarray:
+    def compute_value(self) -> ndarray:
         return self.op.forward() / self.num
 
     def backward(self, gradient: ndarray):
@@ -222,7 +222,7 @@ class NegOp(UnaryOp):
     def __init__(self, op: IOperation):
         super().__init__(op)
 
-    def compute(self) -> ndarray:
+    def compute_value(self) -> ndarray:
         return -self.op.forward()
 
     def backward(self, gradient: ndarray):
@@ -249,7 +249,7 @@ class VMulOp(BinaryOp):
         else:
             return False, None
 
-    def compute(self) -> ndarray:
+    def compute_value(self) -> ndarray:
         return self.op1.forward().dot(self.op2.forward())
 
     def backward(self, gradient: ndarray) -> dict:
@@ -284,7 +284,7 @@ class MMulOp(BinaryOp):
         else:
             return False, None
 
-    def compute(self) -> ndarray:
+    def compute_value(self) -> ndarray:
         return self.op1.forward().dot(self.op2.forward())
 
     def backward(self, gradient: ndarray) -> dict:

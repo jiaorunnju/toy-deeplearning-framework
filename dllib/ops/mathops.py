@@ -9,7 +9,7 @@ class ExpOp(UnaryOp):
     def __init__(self, op: IOperation):
         super().__init__(op)
 
-    def compute(self) -> ndarray:
+    def compute_value(self) -> ndarray:
         return exp(self.op.forward())
 
     def backward(self, gradient: ndarray) -> dict:
@@ -21,7 +21,7 @@ class LnOp(UnaryOp):
     def __init__(self, op: IOperation):
         super().__init__(op)
 
-    def compute(self) -> ndarray:
+    def compute_value(self) -> ndarray:
         return log(self.op.forward())
 
     def backward(self, gradient: ndarray) -> dict:

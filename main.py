@@ -17,7 +17,7 @@ label = Placeholder((N,))
 label.feed(Y)
 
 w = Variable(np.array([0.0, 0.0]), name="w")
-b = Variable(np.array([0.8]), name="b")
+b = Variable(np.array([0.0]), name="b")
 
 pred = VMulOp(data, w)
 pred = pred + b
