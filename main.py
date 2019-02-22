@@ -1,6 +1,7 @@
 import numpy as np
 from dllib.ops import *
 from dllib.optimizer import GradientDescent
+from dllib.loss import AbsoluteLoss, MSE
 
 N = 1000
 w0 = np.array([1.0, 2.0])
@@ -20,9 +21,7 @@ b = Variable(np.array([0.8]), name="b")
 
 pred = VMulOp(data, w)
 pred = pred + b
-m = pred - label
-loss = VMulOp(m, m)
-loss = loss*(1/N)
+loss = AbsoluteLoss(pred, label)
 
 optimizer = GradientDescent(loss, 0.01)
 optimizer.train(500)

@@ -85,6 +85,13 @@ class IOperation:
         from dllib.ops.operations import NegOp
         return NegOp(self)
 
+    def __truediv__(self, other):
+        if isinstance(other, (int, float)):
+            from dllib.ops.operations import DivNumOp
+            return DivNumOp(self, other)
+        else:
+            raise NotImplementedError
+
 
 class ITrainable:
     """

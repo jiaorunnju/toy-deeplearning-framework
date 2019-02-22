@@ -198,6 +198,22 @@ class SubNumOp(UnaryOp):
         return self.op.backward(gradient)
 
 
+class DivNumOp(UnaryOp):
+    """
+    Class for operations that multiply a number
+    """
+
+    def __init__(self, op: IOperation, num: float):
+        super().__init__(op)
+        self.num = num
+
+    def compute(self) -> ndarray:
+        return self.op.forward() / self.num
+
+    def backward(self, gradient: ndarray):
+        return self.op.backward(gradient / self.num)
+
+
 class NegOp(UnaryOp):
     """
     Class for operations that negative an operation
