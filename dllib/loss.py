@@ -1,4 +1,4 @@
-from dllib.ops import UnaryOp, IOperation
+from .ops import UnaryOp, IOperation
 from numpy import ndarray, abs, sum, sign
 
 

@@ -1,7 +1,6 @@
 from abc import ABCMeta, abstractmethod, ABC
 from numpy import ndarray
-
-from dllib.ops.exceptions import InvalidShapeError
+from .exceptions import InvalidShapeError
 import traceback
 import sys
 
@@ -60,48 +59,48 @@ class IOperation:
 
     def __add__(self, other):
         if isinstance(other, IOperation):
-            from dllib.ops.operations import AddOp
+            from .operations import AddOp
             return AddOp(self, other)
         elif isinstance(other, (float, int)):
-            from dllib.ops.operations import AddNumOp
+            from .operations import AddNumOp
             return AddNumOp(self, other)
         else:
             raise NotImplementedError
 
     def __sub__(self, other):
         if isinstance(other, IOperation):
-            from dllib.ops.operations import SubOp
+            from .operations import SubOp
             return SubOp(self, other)
         elif isinstance(other, (float, int)):
-            from dllib.ops.operations import SubNumOp
+            from .operations import SubNumOp
             return SubNumOp(self, other)
         else:
             raise NotImplementedError
 
     def __mul__(self, other):
         if isinstance(other, (int, float)):
-            from dllib.ops.operations import MulNumOp
+            from .operations import MulNumOp
             return MulNumOp(self, other)
         elif isinstance(other, IOperation):
-            from dllib.ops.operations import MulOp
+            from .operations import MulOp
             return MulOp(self, other)
         else:
             raise NotImplementedError
 
     def __neg__(self):
-        from dllib.ops.operations import NegOp
+        from .operations import NegOp
         return NegOp(self)
 
     def __truediv__(self, other):
         if isinstance(other, (int, float)):
-            from dllib.ops.operations import DivNumOp
+            from .operations import DivNumOp
             return DivNumOp(self, other)
         else:
             raise NotImplementedError
 
     def __matmul__(self, other):
         if isinstance(other, IOperation):
-            from dllib.ops.operations import MMulOp
+            from .operations import MMulOp
             return MMulOp(self, other)
         else:
             raise NotImplementedError

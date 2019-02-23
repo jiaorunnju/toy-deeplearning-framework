@@ -1,16 +1,16 @@
-import dllib.ops.mathops as mathops
+from .mathops import ExpOp, LnOp, MeanOp, AbsOp
 
 
 def exp(op):
-    return mathops.ExpOp(op)
+    return ExpOp(op)
 
 
 def log(op):
-    return mathops.LnOp(op)
+    return LnOp(op)
 
 
 def reduce_mean(op):
-    return mathops.MeanOp(op)
+    return MeanOp(op)
 
 
 def add(op1, op2):
@@ -30,4 +30,4 @@ def mmul(op1, op2):
 
 
 def abs(op):
-    return mathops.AbsOp(op)
+    return AbsOp(op)

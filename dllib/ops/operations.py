@@ -1,8 +1,6 @@
-from dllib.ops import IOperation, ITrainable, UnaryOp, BinaryOp
+from .IOps import IOperation, ITrainable, UnaryOp, BinaryOp, ComputableOp
 from numpy import ndarray, outer, squeeze, sum, zeros
-
-from dllib.ops.IOps import ComputableOp
-from dllib.ops.exceptions import InvalidShapeError
+from .exceptions import InvalidShapeError
 
 
 class Constant(IOperation):
