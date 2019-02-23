@@ -11,7 +11,11 @@ class IOperation:
     This is interface for operations. Operations are used to define computation graphs
     """
 
-    __metaclass__ = ABCMeta
+    def __init__(self):
+        self.num_child = 0
+
+    def add_child_count(self):
+        self.num_child += 1
 
     @abstractmethod
     def forward(self) -> ndarray:
@@ -22,11 +26,11 @@ class IOperation:
         raise NotImplementedError
 
     @abstractmethod
-    def backward(self, gradient: ndarray) -> dict:
+    def backward(self, gradient: ndarray):
         """
         backward the gradient and get the gradient of variables with respect to loss
         :param gradient: gradient from up-stream
-        :return: a dict of variables' names and their gradient, e.g. {"w": [1.0,1.0]}
+        :return:
         """
         raise NotImplementedError
 
@@ -78,6 +82,9 @@ class IOperation:
         if isinstance(other, (int, float)):
             from dllib.ops.operations import MulNumOp
             return MulNumOp(self, other)
+        elif isinstance(other, IOperation):
+            from dllib.ops.operations import MulOp
+            return MulOp(self, other)
         else:
             raise NotImplementedError
 
@@ -89,6 +96,13 @@ class IOperation:
         if isinstance(other, (int, float)):
             from dllib.ops.operations import DivNumOp
             return DivNumOp(self, other)
+        else:
+            raise NotImplementedError
+
+    def __matmul__(self, other):
+        if isinstance(other, IOperation):
+            from dllib.ops.operations import MMulOp
+            return MMulOp(self, other)
         else:
             raise NotImplementedError
 
@@ -116,8 +130,12 @@ class ComputableOp(IOperation):
     """
 
     def __init__(self):
-        self.computed: bool = False
-        self.data: ndarray = None
+        super().__init__()
+        self.value_computed: bool = False
+        self.value: ndarray = None
+        self.gradient_computed: bool = False
+        self.grad: ndarray = None
+        self.grad_count = 0
 
     @abstractmethod
     def compute_value(self) -> ndarray:
@@ -127,15 +145,32 @@ class ComputableOp(IOperation):
         """
         raise NotImplementedError
 
+    def reset(self):
+        self.gradient_computed = False
+        self.value_computed = False
+        self.grad_count = 0
+
     def forward(self):
         """
         forward with cached result
         :return: cached result
         """
-        if not self.computed:
-            self.data = self.compute_value()
-            self.computed = True
-        return self.data
+        if not self.value_computed:
+            self.value = self.compute_value()
+            self.value_computed = True
+        return self.value
+
+    def add_gradient(self, gradient: ndarray):
+        self.grad_count += 1
+        if not self.gradient_computed:
+            self.grad = gradient
+            self.gradient_computed = True
+        else:
+            self.grad += gradient
+
+    @abstractmethod
+    def compute_gradient(self):
+        raise NotImplementedError
 
 
 class UnaryOp(ComputableOp, ABC):
@@ -145,13 +180,14 @@ class UnaryOp(ComputableOp, ABC):
 
     def __init__(self, op: IOperation):
         super().__init__()
+        op.add_child_count()
         self.op = op
 
     def get_variables(self):
         return self.op.get_variables()
 
     def reset(self):
-        self.computed = False
+        super().reset()
         # logging.warn("reset called")
         self.op.reset()
 
@@ -164,6 +200,11 @@ class UnaryOp(ComputableOp, ABC):
             traceback.print_exc()
             sys.exit(sys.exit(1))
 
+    def backward(self, gradient: ndarray):
+        self.add_gradient(gradient)
+        if self.grad_count >= self.num_child:
+            self.op.backward(self.compute_gradient())
+
 
 class BinaryOp(ComputableOp, ABC):
     """
@@ -172,6 +213,8 @@ class BinaryOp(ComputableOp, ABC):
 
     def __init__(self, op1: IOperation, op2: IOperation):
         super().__init__()
+        op1.add_child_count()
+        op2.add_child_count()
         self.op1 = op1
         self.op2 = op2
 
@@ -188,9 +231,16 @@ class BinaryOp(ComputableOp, ABC):
         raise NotImplementedError
 
     def reset(self):
-        self.computed = False
+        super().reset()
         self.op1.reset()
         self.op2.reset()
+
+    def backward(self, gradient: ndarray):
+        self.add_gradient(gradient)
+        if self.grad_count >= self.num_child:
+            grad1, grad2 = self.compute_gradient()
+            self.op1.backward(grad1)
+            self.op2.backward(grad2)
 
     def check_shape(self):
         try:

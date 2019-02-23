@@ -1,8 +1,8 @@
 from dllib.ops import IOperation, ITrainable, UnaryOp, BinaryOp
 from numpy import ndarray, outer, squeeze, sum, zeros
 
+from dllib.ops.IOps import ComputableOp
 from dllib.ops.exceptions import InvalidShapeError
-from dllib.util import merge_gradient
 
 
 class Constant(IOperation):
@@ -11,13 +11,14 @@ class Constant(IOperation):
     """
 
     def __init__(self, value: ndarray):
+        super().__init__()
         self.value = value
 
     def forward(self):
         return self.value
 
     def backward(self, gradient: ndarray):
-        return {}
+        pass
 
     def get_variables(self):
         return set()
@@ -44,12 +45,13 @@ class Placeholder(Constant):
         self.value = val
 
 
-class Variable(IOperation, ITrainable):
+class Variable(ComputableOp, ITrainable):
     """
     Class for trainable parameters
     """
 
     def __init__(self, value: ndarray, name: str, trainable: bool = True):
+        super().__init__()
         self.value = value
         self.name = name
         self.trainable = trainable
@@ -61,23 +63,7 @@ class Variable(IOperation, ITrainable):
         return self.value
 
     def backward(self, gradient: ndarray):
-        """
-        pay attention to broadcast operations
-        :param gradient: gardient from up-streams
-        :return:
-        """
-        if not self.trainable:
-            return {}
-        else:
-            if gradient.shape == self.value.shape:
-                return {self.name: gradient}
-            else:
-                g = sum(gradient, axis=0)
-                if g.shape == squeeze(self.value).shape:
-                    return {self.name: sum(gradient, axis=0)}
-                else:
-                    raise InvalidShapeError("wrong gradient shape: {0} and variable shape: {1}".
-                                            format(gradient.shape, self.value.shape))
+        self.add_gradient(gradient)
 
     def get_variables(self):
         s = set()
@@ -94,6 +80,12 @@ class Variable(IOperation, ITrainable):
         self.value = val
 
     def reset(self):
+        super().reset()
+
+    def compute_value(self) -> ndarray:
+        pass
+
+    def compute_gradient(self):
         pass
 
     def __eq__(self, other):
@@ -125,8 +117,27 @@ class AddOp(BinaryOp):
     def compute_value(self):
         return self.op1.forward() + self.op2.forward()
 
-    def backward(self, gradient: ndarray):
-        return merge_gradient(self.op1.backward(gradient), self.op2.backward(gradient))
+    def compute_gradient(self):
+        shape_op1 = self.op1.forward().shape
+        shape_op2 = self.op2.forward().shape
+        if shape_op1 == shape_op2:
+            return self.grad, self.grad
+        elif len(shape_op1) == len(shape_op2) + 1 and shape_op1[1:] == shape_op2:
+            g = sum(self.grad, axis=0)
+            return self.grad, g
+        elif len(shape_op2) == len(shape_op1) + 1 and shape_op2[1:] == shape_op1:
+            g = sum(self.grad, axis=0)
+            return g, self.grad
+        elif len(shape_op1) == 1 and len(shape_op2) == 1 and shape_op2[0] == 1:
+            g = sum(self.grad, axis=0)
+            return self.grad, g
+        elif len(shape_op1) == 1 and len(shape_op2) == 1 and shape_op1[0] == 1:
+            g = sum(self.grad, axis=0)
+            return g, self.grad
+        else:
+            print(shape_op1, shape_op2)
+            raise InvalidShapeError("wrong gradient shape: {0} and variable shape: {1}, {2}".
+                                    format(self.grad.shape, shape_op1, shape_op2))
 
 
 class SubOp(BinaryOp):
@@ -146,8 +157,8 @@ class SubOp(BinaryOp):
     def compute_value(self):
         return self.op1.forward() - self.op2.forward()
 
-    def backward(self, gradient: ndarray):
-        return merge_gradient(self.op1.backward(gradient), self.op2.backward(-gradient))
+    def compute_gradient(self):
+        return self.grad, self.grad
 
 
 class MulNumOp(UnaryOp):
@@ -162,8 +173,8 @@ class MulNumOp(UnaryOp):
     def compute_value(self) -> ndarray:
         return self.op.forward() * self.num
 
-    def backward(self, gradient: ndarray):
-        return self.op.backward(gradient * self.num)
+    def compute_gradient(self):
+        return self.num * self.grad
 
 
 class AddNumOp(UnaryOp):
@@ -178,8 +189,8 @@ class AddNumOp(UnaryOp):
     def compute_value(self) -> ndarray:
         return self.op.forward() + self.num
 
-    def backward(self, gradient: ndarray):
-        return self.op.backward(gradient)
+    def compute_gradient(self):
+        return self.grad
 
 
 class SubNumOp(UnaryOp):
@@ -194,8 +205,8 @@ class SubNumOp(UnaryOp):
     def compute_value(self) -> ndarray:
         return self.op.forward() - self.num
 
-    def backward(self, gradient: ndarray):
-        return self.op.backward(gradient)
+    def compute_gradient(self):
+        return self.grad
 
 
 class DivNumOp(UnaryOp):
@@ -210,8 +221,8 @@ class DivNumOp(UnaryOp):
     def compute_value(self) -> ndarray:
         return self.op.forward() / self.num
 
-    def backward(self, gradient: ndarray):
-        return self.op.backward(gradient / self.num)
+    def compute_gradient(self):
+        return self.grad / self.num
 
 
 class NegOp(UnaryOp):
@@ -225,11 +236,11 @@ class NegOp(UnaryOp):
     def compute_value(self) -> ndarray:
         return -self.op.forward()
 
-    def backward(self, gradient: ndarray):
-        return self.op.backward(-gradient)
+    def compute_gradient(self):
+        return -self.grad
 
 
-class VMulOp(BinaryOp):
+class MMulOp(BinaryOp):
     """
     This is vector multiply operation, in the form of
     y = Ax, where y is m*1, A is m*n, x is n*1
@@ -252,40 +263,29 @@ class VMulOp(BinaryOp):
     def compute_value(self) -> ndarray:
         return self.op1.forward().dot(self.op2.forward())
 
-    def backward(self, gradient: ndarray) -> dict:
+    def compute_gradient(self):
         A = self.op1.forward()
         x = self.op2.forward()
 
         if len(A.shape) == 1:
-            return merge_gradient(self.op1.backward(squeeze(outer(gradient, x))),
-                                  self.op2.backward(gradient * A))
+            return squeeze(outer(self.grad, x)), self.grad * A
         else:
-            return merge_gradient(self.op1.backward(squeeze(outer(gradient, x))),
-                                  self.op2.backward(A.T.dot(gradient)))
+            return squeeze(outer(self.grad, x)), A.T.dot(self.grad)
 
 
-class MMulOp(BinaryOp):
-    """
-    This is matrix multiply operation, in the form of
-    Y = AX, where y is m*n, A is m*k, X is k*n
-    """
+class MulOp(BinaryOp):
 
-    def __init__(self, data: IOperation, mat: IOperation):
-        super().__init__(data, mat)
+    def __init__(self, op1: IOperation, op2: IOperation):
+        super().__init__(op1, op2)
 
-    def valid_shape(self, shape1: tuple, shape2: tuple) -> (bool, tuple):
-        if len(shape1) != len(shape2) + 1:
-            return False, None
-        if len(shape1) == 3:
-            if shape1[2] == shape2[0]:
-                return True, (shape1[0], shape1[1], shape2[1])
-            else:
-                return False, None
+    def valid_shape(self, shape1: tuple, shape2: tuple):
+        if shape1 == shape2:
+            return True, shape1
         else:
             return False, None
 
-    def compute_value(self) -> ndarray:
-        return self.op1.forward().dot(self.op2.forward())
+    def compute_value(self):
+        return self.op1.forward() * self.op2.forward()
 
-    def backward(self, gradient: ndarray) -> dict:
-        raise NotImplementedError
+    def compute_gradient(self):
+        return self.grad * self.op1.forward(), self.grad * self.op2.forward()

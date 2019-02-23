@@ -1,5 +1,5 @@
 from numpy.core.multiarray import ndarray
-from numpy import exp, log
+from numpy import exp, log, mean, ones_like, abs, sign
 
 from dllib.ops import UnaryOp, IOperation
 
@@ -12,8 +12,8 @@ class ExpOp(UnaryOp):
     def compute_value(self) -> ndarray:
         return exp(self.op.forward())
 
-    def backward(self, gradient: ndarray) -> dict:
-        return self.op.backward(exp(gradient))
+    def compute_gradient(self):
+        return exp(self.grad)
 
 
 class LnOp(UnaryOp):
@@ -24,5 +24,31 @@ class LnOp(UnaryOp):
     def compute_value(self) -> ndarray:
         return log(self.op.forward())
 
-    def backward(self, gradient: ndarray) -> dict:
-        return self.op.backward(1.0 / gradient)
+    def compute_gradient(self):
+        return 1.0 / self.grad
+
+
+class MeanOp(UnaryOp):
+
+    def __init__(self, op: IOperation):
+        super().__init__(op)
+
+    def compute_value(self):
+        return mean(self.op.forward())
+
+    def compute_gradient(self):
+        t = self.op.forward()
+        return self.grad * ones_like(t) / t.size
+
+
+class AbsOp(UnaryOp):
+
+    def __init__(self, op: IOperation):
+        super().__init__(op)
+
+    def compute_value(self):
+        return abs(self.op.forward())
+
+    def compute_gradient(self):
+        t = self.op.forward()
+        return self.grad * sign(t)

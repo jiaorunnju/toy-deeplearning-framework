@@ -34,9 +34,10 @@ class GradientDescent(Optimizer):
         var = self.loss.get_variables()
         for i in range(n_rounds):
             err = self.loss.forward()
-            maps = self.loss.backward(array([1.0]))
-            if verbose and i%interval == 0:
+            self.loss.backward(array([1.0]))
+            if verbose and i % interval == 0:
                 print("[{0:5d}/{1}] loss: {2:4f}".format(i, n_rounds, err))
             for v in var:
-                v.apply_gradient(maps[v.name], self.lr)
+                print(v.grad)
+                v.apply_gradient(v.grad, self.lr)
             self.loss.reset()
