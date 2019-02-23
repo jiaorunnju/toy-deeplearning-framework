@@ -1,3 +1,7 @@
+"""
+This file contains different losses
+"""
+
 from .ops import *
 
 

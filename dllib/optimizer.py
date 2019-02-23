@@ -1,3 +1,7 @@
+"""
+This file contains classes for optimization methods
+"""
+
 from .ops import IOperation
 from abc import abstractmethod
 from numpy import array, squeeze
