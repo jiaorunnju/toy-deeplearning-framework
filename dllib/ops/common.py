@@ -1,4 +1,8 @@
-from .mathops import ExpOp, LnOp, MeanOp, AbsOp
+"""
+This file contains useful math operations, use functions as wrappers
+"""
+
+from .mathops import ExpOp, LnOp, MeanOp, AbsOp, PowOp
 
 
 def exp(op):
@@ -31,3 +35,11 @@ def mmul(op1, op2):
 
 def abs(op):
     return AbsOp(op)
+
+
+def div(op1, op2):
+    return op1 / op2
+
+
+def pow(op1, op2):
+    return PowOp(op1, op2)

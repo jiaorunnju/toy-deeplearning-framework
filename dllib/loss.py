@@ -1,42 +1,9 @@
-from .ops import UnaryOp, IOperation
-from numpy import ndarray, abs, sum, sign
+from .ops import *
 
 
-class MSE(UnaryOp):
-    """
-    Class for mse loss
-    """
-
-    def __init__(self, pred: IOperation, label: IOperation):
-        super().__init__(pred)
-        self.label = label
-
-    def compute_value(self):
-        t = self.op.forward() - self.label.forward()
-        n = len(t)
-        return t.dot(t)/n
-
-    def backward(self, gradient: ndarray):
-        t = self.op.forward() - self.label.forward()
-        n = len(t)
-        return self.op.backward(2 / n * gradient * t)
+def mse_loss(pred, y):
+    return reduce_mean((pred - y) * (pred - y))
 
 
-class AbsoluteLoss(UnaryOp):
-    """
-    Class for mse loss
-    """
-
-    def __init__(self, pred: IOperation, label: IOperation):
-        super().__init__(pred)
-        self.label = label
-
-    def compute_value(self):
-        t = self.op.forward() - self.label.forward()
-        n = len(t)
-        return sum(abs(t))/n
-
-    def backward(self, gradient: ndarray):
-        t = self.op.forward() - self.label.forward()
-        n = len(t)
-        return self.op.backward(2 / n * gradient * sign(t))
+def absolute_loss(pred, y):
+    return reduce_mean(abs(pred - y))

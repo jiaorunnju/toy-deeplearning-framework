@@ -1,5 +1,6 @@
 import numpy as np
-import dllib as dlib
+import dllib
+from dllib.loss import mse_loss
 from dllib.optimizer import GradientDescent
 
 N = 1000
@@ -9,20 +10,21 @@ b0 = np.array([4.0])
 X = np.random.randn(N, 2)
 Y = np.dot(X, w0) + b0
 
-data = dlib.Placeholder((N, 2))
+data = dllib.Placeholder((N, 2))
 data.feed(X)
 
-label = dlib.Placeholder((N,))
+label = dllib.Placeholder((N,))
 label.feed(Y)
 
-w = dlib.Variable(np.array([0.0, 0.0]), name="w")
-b = dlib.Variable(np.array([0.0]), name="b")
+w = dllib.Variable(np.array([0.0, 0.0]), name="w")
+b = dllib.Variable(np.array([0.0]), name="b")
 
-pred = data@w + b
-loss = dlib.reduce_mean(pred*pred)
+pred = b + data @ w
+loss = dllib.reduce_mean((pred-label)*(pred-label))
+loss.check_shape()
 
 optimizer = GradientDescent(loss, 0.01)
-optimizer.train(10, verbose=False)
+optimizer.train(500, verbose=True)
 
 print("w is: ", w.forward())
 print("b is: ", b.forward())

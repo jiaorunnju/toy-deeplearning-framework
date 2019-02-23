@@ -1,2 +1,2 @@
+from .optimizer import Optimizer, GradientDescent
 from .ops import *
-from .optimizer import *

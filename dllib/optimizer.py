@@ -1,6 +1,6 @@
-from dllib.ops import IOperation
+from .ops import IOperation
 from abc import abstractmethod
-from numpy import array
+from numpy import array, squeeze
 
 
 class Optimizer:
@@ -36,8 +36,7 @@ class GradientDescent(Optimizer):
             err = self.loss.forward()
             self.loss.backward(array([1.0]))
             if verbose and i % interval == 0:
-                print("[{0:5d}/{1}] loss: {2:4f}".format(i, n_rounds, err))
+                print("[{0:5d}/{1}] loss: {2:4f}".format(i, n_rounds, squeeze(err)))
             for v in var:
-                print(v.grad)
                 v.apply_gradient(v.grad, self.lr)
             self.loss.reset()

@@ -1,3 +1,8 @@
+"""
+This file contains core classes for Operations, and the basic data flow operations when computing
+values and gradients
+"""
+
 from abc import ABCMeta, abstractmethod, ABC
 from numpy import ndarray
 from .exceptions import InvalidShapeError
@@ -87,6 +92,16 @@ class IOperation:
         else:
             raise NotImplementedError
 
+    def __rmul__(self, other):
+        if isinstance(other, (int, float)):
+            from .operations import MulNumOp
+            return MulNumOp(self, other)
+        elif isinstance(other, IOperation):
+            from .operations import MulOp
+            return MulOp(self, other)
+        else:
+            raise NotImplementedError
+
     def __neg__(self):
         from .operations import NegOp
         return NegOp(self)
@@ -102,6 +117,13 @@ class IOperation:
         if isinstance(other, IOperation):
             from .operations import MMulOp
             return MMulOp(self, other)
+        else:
+            raise NotImplementedError
+
+    def __pow__(self, power, modulo=None):
+        if isinstance(power, int):
+            from .mathops import PowOp
+            return PowOp(self, power)
         else:
             raise NotImplementedError
 
@@ -160,15 +182,24 @@ class ComputableOp(IOperation):
         return self.value
 
     def add_gradient(self, gradient: ndarray):
+        """
+        Add the gradient to current node
+        :param gradient: gradient from up-stream
+        :return:
+        """
         self.grad_count += 1
         if not self.gradient_computed:
             self.grad = gradient
             self.gradient_computed = True
         else:
-            self.grad += gradient
+            self.grad = self.grad + gradient
 
     @abstractmethod
     def compute_gradient(self):
+        """
+        Compute the gradient to nodes in the front using current node's gradient
+        :return: gradient with respect to each node before
+        """
         raise NotImplementedError
 
 
@@ -200,6 +231,12 @@ class UnaryOp(ComputableOp, ABC):
             sys.exit(sys.exit(1))
 
     def backward(self, gradient: ndarray):
+        """
+        Propagate the gradient only if all nodes that use this node have added their gradient
+        to current node, to get a polynomial time computation
+        :param gradient: gradient from up-stream
+        :return:
+        """
         self.add_gradient(gradient)
         if self.grad_count >= self.num_child:
             self.op.backward(self.compute_gradient())
@@ -235,6 +272,12 @@ class BinaryOp(ComputableOp, ABC):
         self.op2.reset()
 
     def backward(self, gradient: ndarray):
+        """
+        Propagate the gradient only if all nodes that use this node have added their gradient
+        to current node, to get a polynomial time computation
+        :param gradient: gradient from up-stream
+        :return:
+        """
         self.add_gradient(gradient)
         if self.grad_count >= self.num_child:
             grad1, grad2 = self.compute_gradient()

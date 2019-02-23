@@ -1,3 +1,7 @@
+"""
+This file contains core operations, defined as classes inherited from basic classes in IOps.py
+"""
+
 from .IOps import IOperation, ITrainable, UnaryOp, BinaryOp, ComputableOp
 from numpy import ndarray, outer, squeeze, sum, zeros
 from .exceptions import InvalidShapeError
@@ -109,6 +113,12 @@ class AddOp(BinaryOp):
             return True, shape1
         elif len(shape1) == len(shape2) + 1 and shape1[1:] == shape2:
             return True, shape1
+        elif len(shape2) == len(shape1) + 1 and shape2[2:] == shape1:
+            return True, shape2
+        elif len(shape1) == 1 and len(shape2) == 1 and shape2[0] == 1:
+            return True, shape1
+        elif len(shape1) == 1 and len(shape2) == 1 and shape1[0] == 1:
+            return True, shape2
         else:
             return False, None
 
@@ -133,22 +143,35 @@ class AddOp(BinaryOp):
             g = sum(self.grad, axis=0)
             return g, self.grad
         else:
-            print(shape_op1, shape_op2)
             raise InvalidShapeError("wrong gradient shape: {0} and variable shape: {1}, {2}".
                                     format(self.grad.shape, shape_op1, shape_op2))
 
 
 class SubOp(BinaryOp):
     """
-    Class for subtraction operations
+    Class for subtract operations
     """
 
     def __init__(self, op1: IOperation, op2: IOperation):
         super().__init__(op1, op2)
 
     def valid_shape(self, shape1: tuple, shape2: tuple):
+        """
+        Pay attention to broadcast
+        :param shape1: out-shape of input 1
+        :param shape2: out-shape of input 2
+        :return: (False, None) if not compatible, (True, out-shape) else
+        """
         if shape1 == shape2:
             return True, shape1
+        elif len(shape1) == len(shape2) + 1 and shape1[1:] == shape2:
+            return True, shape1
+        elif len(shape2) == len(shape1) + 1 and shape2[2:] == shape1:
+            return True, shape2
+        elif len(shape1) == 1 and len(shape2) == 1 and shape2[0] == 1:
+            return True, shape1
+        elif len(shape1) == 1 and len(shape2) == 1 and shape1[0] == 1:
+            return True, shape2
         else:
             return False, None
 
@@ -156,7 +179,25 @@ class SubOp(BinaryOp):
         return self.op1.forward() - self.op2.forward()
 
     def compute_gradient(self):
-        return self.grad, self.grad
+        shape_op1 = self.op1.forward().shape
+        shape_op2 = self.op2.forward().shape
+        if shape_op1 == shape_op2:
+            return self.grad, -self.grad
+        elif len(shape_op1) == len(shape_op2) + 1 and shape_op1[1:] == shape_op2:
+            g = sum(self.grad, axis=0)
+            return self.grad, -g
+        elif len(shape_op2) == len(shape_op1) + 1 and shape_op2[1:] == shape_op1:
+            g = sum(self.grad, axis=0)
+            return g, -self.grad
+        elif len(shape_op1) == 1 and len(shape_op2) == 1 and shape_op2[0] == 1:
+            g = sum(self.grad, axis=0)
+            return self.grad, -g
+        elif len(shape_op1) == 1 and len(shape_op2) == 1 and shape_op1[0] == 1:
+            g = sum(self.grad, axis=0)
+            return g, -self.grad
+        else:
+            raise InvalidShapeError("wrong gradient shape: {0} and variable shape: {1}, {2}".
+                                    format(self.grad.shape, shape_op1, shape_op2))
 
 
 class MulNumOp(UnaryOp):
@@ -272,6 +313,9 @@ class MMulOp(BinaryOp):
 
 
 class MulOp(BinaryOp):
+    """
+    class for element-wise multiply
+    """
 
     def __init__(self, op1: IOperation, op2: IOperation):
         super().__init__(op1, op2)
@@ -286,4 +330,4 @@ class MulOp(BinaryOp):
         return self.op1.forward() * self.op2.forward()
 
     def compute_gradient(self):
-        return self.grad * self.op1.forward(), self.grad * self.op2.forward()
+        return self.grad * self.op2.forward(), self.grad * self.op1.forward()

@@ -24,61 +24,60 @@ expected to have:
 - [ ] softmax regression
 - [ ] utilities for SGD
 - [ ] different activation functions
-- [ ] useful math functions
+- [x] useful math functions
 
 Here is a simple code for linear regression:
 
 ```python
 import numpy as np
-from ops import *
-from optimizer import GradientDescent
+import dllib
+from dllib.loss import mse_loss
+from dllib.optimizer import GradientDescent
 
+# define data
 N = 1000
-# target value
 w0 = np.array([1.0, 2.0])
 b0 = np.array([4.0])
 
-# random data
 X = np.random.randn(N, 2)
 Y = np.dot(X, w0) + b0
 
-# define placeholder to build graph
-data = Placeholder((N, 2))
+# define placeholder
+data = dllib.Placeholder((N, 2))
 data.feed(X)
-label = Placeholder((N,))
+
+label = dllib.Placeholder((N,))
 label.feed(Y)
 
-# trainable parameters
-w = Variable(np.array([0.0, 0.0]), name="w")
-b = Variable(np.array([0.8]), name="b")
+# define variable
+w = dllib.Variable(np.array([0.0, 0.0]), name="w")
+b = dllib.Variable(np.array([0.0]), name="b")
 
-# define computation graph
-pred = VMulOp(data, w)
-pred = pred + b
-m = pred - label
-loss = VMulOp(m, m)
-loss = loss*(1/N)
+# define loss
+pred = b + data @ w
+loss = dllib.reduce_mean((pred-label)*(pred-label))
+loss.check_shape()
 
 optimizer = GradientDescent(loss, 0.01)
-optimizer.train(500)
+optimizer.train(500, verbose=True)
 
-print(w.forward())
-print(b.forward())
+print("w is: ", w.forward())
+print("b is: ", b.forward())
 ```
 
 Output is:
 
 ```
-[    0/500] loss: 14.518250
-[   50/500] loss: 2.120687
-[  100/500] loss: 0.310192
-[  150/500] loss: 0.045420
-[  200/500] loss: 0.006656
-[  250/500] loss: 0.000976
-[  300/500] loss: 0.000143
-[  350/500] loss: 0.000021
-[  400/500] loss: 0.000003
+[    0/500] loss: 21.017926
+[   50/500] loss: 2.782524
+[  100/500] loss: 0.371020
+[  150/500] loss: 0.049847
+[  200/500] loss: 0.006750
+[  250/500] loss: 0.000921
+[  300/500] loss: 0.000127
+[  350/500] loss: 0.000018
+[  400/500] loss: 0.000002
 [  450/500] loss: 0.000000
-w is:  [0.99990873 1.99985457]
-b is:  [3.99979849]
+w is:  [1.00003636 1.99986063]
+b is:  [3.99982599]
 ```
