@@ -16,7 +16,7 @@ class Optimizer:
         self.loss = loss
 
     @abstractmethod
-    def train(self, n_rounds: int):
+    def optimize(self, n_rounds: int):
         """
         perform optimization on a loss
         :param n_rounds: number of rounds
@@ -34,13 +34,14 @@ class GradientDescent(Optimizer):
         super().__init__(loss)
         self.lr = lr
 
-    def train(self, n_rounds: int, verbose: bool = True, interval: int = 50):
+    def optimize(self, n_rounds: int, verbose: bool = True, interval: int = 50):
         var = self.loss.get_variables()
+        num_len = len(str(n_rounds))
         for i in range(n_rounds):
             err = self.loss.forward()
             self.loss.backward(array([1.0]))
             if verbose and i % interval == 0:
-                print("[{0:5d}/{1}] loss: {2:4f}".format(i, n_rounds, squeeze(err)))
+                print("[{0:{1}d}/{2}] loss: {3:4f}".format(i, num_len, n_rounds, squeeze(err)))
             for v in var:
                 v.apply_gradient(v.grad, self.lr)
             self.loss.reset()

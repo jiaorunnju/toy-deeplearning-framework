@@ -3,8 +3,10 @@ This file contains core operations, defined as classes inherited from basic clas
 """
 
 from .IOps import IOperation, ITrainable, UnaryOp, BinaryOp, ComputableOp
-from numpy import ndarray, outer, squeeze, sum, zeros
+from numpy import ndarray, outer, squeeze, sum, zeros, array
 from .exceptions import InvalidShapeError
+from dllib.util import element_wise_binary
+import dllib.util as util
 
 
 class Constant(IOperation):
@@ -109,18 +111,7 @@ class AddOp(BinaryOp):
         :param shape2: out-shape of input 2
         :return: (False, None) if not compatible, (True, out-shape) else
         """
-        if shape1 == shape2:
-            return True, shape1
-        elif len(shape1) == len(shape2) + 1 and shape1[1:] == shape2:
-            return True, shape1
-        elif len(shape2) == len(shape1) + 1 and shape2[2:] == shape1:
-            return True, shape2
-        elif len(shape1) == 1 and len(shape2) == 1 and shape2[0] == 1:
-            return True, shape1
-        elif len(shape1) == 1 and len(shape2) == 1 and shape1[0] == 1:
-            return True, shape2
-        else:
-            return False, None
+        return element_wise_binary(shape1, shape2)
 
     def compute_value(self):
         return self.op1.forward() + self.op2.forward()
@@ -128,20 +119,21 @@ class AddOp(BinaryOp):
     def compute_gradient(self):
         shape_op1 = self.op1.forward().shape
         shape_op2 = self.op2.forward().shape
-        if shape_op1 == shape_op2:
+        re = util.is_broadcast(shape_op1, shape_op2)
+        if re == util.NOT_BROADCAST:
             return self.grad, self.grad
-        elif len(shape_op1) == len(shape_op2) + 1 and shape_op1[1:] == shape_op2:
+        elif re == util.BROADCAST_1:
             g = sum(self.grad, axis=0)
             return self.grad, g
-        elif len(shape_op2) == len(shape_op1) + 1 and shape_op2[1:] == shape_op1:
+        elif re == util.BROADCAST_2:
             g = sum(self.grad, axis=0)
             return g, self.grad
-        elif len(shape_op1) == 1 and len(shape_op2) == 1 and shape_op2[0] == 1:
-            g = sum(self.grad, axis=0)
-            return self.grad, g
-        elif len(shape_op1) == 1 and len(shape_op2) == 1 and shape_op1[0] == 1:
-            g = sum(self.grad, axis=0)
-            return g, self.grad
+        elif re == util.BROADCAST_1_SCALAR:
+            g = sum(self.grad)
+            return self.grad, array([g])
+        elif re == util.BROADCAST_2_SCALAR:
+            g = sum(self.grad)
+            return array([g]), self.grad
         else:
             raise InvalidShapeError("wrong gradient shape: {0} and variable shape: {1}, {2}".
                                     format(self.grad.shape, shape_op1, shape_op2))
@@ -162,18 +154,7 @@ class SubOp(BinaryOp):
         :param shape2: out-shape of input 2
         :return: (False, None) if not compatible, (True, out-shape) else
         """
-        if shape1 == shape2:
-            return True, shape1
-        elif len(shape1) == len(shape2) + 1 and shape1[1:] == shape2:
-            return True, shape1
-        elif len(shape2) == len(shape1) + 1 and shape2[2:] == shape1:
-            return True, shape2
-        elif len(shape1) == 1 and len(shape2) == 1 and shape2[0] == 1:
-            return True, shape1
-        elif len(shape1) == 1 and len(shape2) == 1 and shape1[0] == 1:
-            return True, shape2
-        else:
-            return False, None
+        return element_wise_binary(shape1, shape2)
 
     def compute_value(self):
         return self.op1.forward() - self.op2.forward()
@@ -181,20 +162,21 @@ class SubOp(BinaryOp):
     def compute_gradient(self):
         shape_op1 = self.op1.forward().shape
         shape_op2 = self.op2.forward().shape
-        if shape_op1 == shape_op2:
+        re = util.is_broadcast(shape_op1, shape_op2)
+        if re == util.NOT_BROADCAST:
             return self.grad, -self.grad
-        elif len(shape_op1) == len(shape_op2) + 1 and shape_op1[1:] == shape_op2:
+        elif re == util.BROADCAST_1:
             g = sum(self.grad, axis=0)
             return self.grad, -g
-        elif len(shape_op2) == len(shape_op1) + 1 and shape_op2[1:] == shape_op1:
+        elif re == util.BROADCAST_2:
             g = sum(self.grad, axis=0)
             return g, -self.grad
-        elif len(shape_op1) == 1 and len(shape_op2) == 1 and shape_op2[0] == 1:
-            g = sum(self.grad, axis=0)
-            return self.grad, -g
-        elif len(shape_op1) == 1 and len(shape_op2) == 1 and shape_op1[0] == 1:
-            g = sum(self.grad, axis=0)
-            return g, -self.grad
+        elif re == util.BROADCAST_1_SCALAR:
+            g = sum(self.grad)
+            return self.grad, -array([g])
+        elif re == util.BROADCAST_2_SCALAR:
+            g = sum(self.grad)
+            return array([g]), -self.grad
         else:
             raise InvalidShapeError("wrong gradient shape: {0} and variable shape: {1}, {2}".
                                     format(self.grad.shape, shape_op1, shape_op2))
@@ -248,6 +230,22 @@ class SubNumOp(UnaryOp):
         return self.grad
 
 
+class RSubNumOp(UnaryOp):
+    """
+    Class for operations that sub a number
+    """
+
+    def __init__(self, op: IOperation, num: float):
+        super().__init__(op)
+        self.num = num
+
+    def compute_value(self) -> ndarray:
+        return self.num - self.op.forward()
+
+    def compute_gradient(self):
+        return -self.grad
+
+
 class DivNumOp(UnaryOp):
     """
     Class for operations that multiply a number
@@ -262,6 +260,59 @@ class DivNumOp(UnaryOp):
 
     def compute_gradient(self):
         return self.grad / self.num
+
+
+class DivedNumOp(UnaryOp):
+    """
+    Class for operations that divided by a number
+    """
+
+    def __init__(self, op: IOperation, num: float):
+        super().__init__(op)
+        self.num = num
+
+    def compute_value(self) -> ndarray:
+        return self.num / self.op.forward()
+
+    def compute_gradient(self):
+        return self.grad * -self.num * (1 / self.op.forward()) ** 2
+
+
+class DivOp(BinaryOp):
+
+    def __init__(self, op1: IOperation, op2: IOperation):
+        super().__init__(op1, op2)
+
+    def valid_shape(self, shape1: tuple, shape2: tuple):
+        return element_wise_binary(shape1, shape2)
+
+    def compute_value(self):
+        return self.op1.forward() / self.op2.forward()
+
+    def compute_gradient(self):
+        divisor = self.op2.forward()
+        dividend = self.op1.forward()
+        shape_op1 = dividend.shape
+        shape_op2 = divisor.shape
+        t = 1 / divisor
+        re = util.is_broadcast(shape_op1, shape_op2)
+        if re == util.NOT_BROADCAST:
+            return self.grad * t, -self.grad * dividend * t ** 2
+        elif re == util.BROADCAST_1:
+            g = sum(-self.grad * dividend * t ** 2, axis=0)
+            return self.grad * t, g
+        elif re == util.BROADCAST_2:
+            g = sum(self.grad * t, axis=0)
+            return g, -self.grad * dividend * t ** 2
+        elif re == util.BROADCAST_1_SCALAR:
+            g = sum(-self.grad * dividend * t ** 2)
+            return self.grad * t, array([g])
+        elif re == util.BROADCAST_2_SCALAR:
+            g = sum(self.grad * t)
+            return array([g]), -self.grad * dividend * t ** 2
+        else:
+            raise InvalidShapeError("wrong gradient shape: {0} and variable shape: {1}, {2}".
+                                    format(self.grad.shape, shape_op1, shape_op2))
 
 
 class NegOp(UnaryOp):
@@ -300,7 +351,12 @@ class MMulOp(BinaryOp):
             return False, None
 
     def compute_value(self) -> ndarray:
-        return self.op1.forward().dot(self.op2.forward())
+        x1 = self.op1.forward()
+        x2 = self.op2.forward()
+        if len(x1.shape) == 1 and len(x2.shape) == 1:
+            return array(x1.dot(x2))
+        else:
+            return x1.dot(x2)
 
     def compute_gradient(self):
         A = self.op1.forward()
@@ -321,13 +377,29 @@ class MulOp(BinaryOp):
         super().__init__(op1, op2)
 
     def valid_shape(self, shape1: tuple, shape2: tuple):
-        if shape1 == shape2:
-            return True, shape1
-        else:
-            return False, None
+        return element_wise_binary(shape1, shape2)
 
     def compute_value(self):
         return self.op1.forward() * self.op2.forward()
 
     def compute_gradient(self):
-        return self.grad * self.op2.forward(), self.grad * self.op1.forward()
+        shape_op1 = self.op1.forward().shape
+        shape_op2 = self.op2.forward().shape
+        re = util.is_broadcast(shape_op1, shape_op2)
+        if re == util.NOT_BROADCAST:
+            return self.grad * self.op2.forward(), self.grad * self.op1.forward()
+        elif re == util.BROADCAST_1:
+            g = sum(self.grad * self.op1.forward(), axis=0)
+            return self.grad * self.op2.forward(), g
+        elif re == util.BROADCAST_2:
+            g = sum(self.grad * self.op2.forward(), axis=0)
+            return g, self.grad * self.op1.forward()
+        elif re == util.BROADCAST_1_SCALAR:
+            g = sum(self.grad * self.op1.forward())
+            return self.grad * self.op2.forward(), array([g])
+        elif re == util.BROADCAST_2_SCALAR:
+            g = sum(self.grad * self.op2.forward())
+            return array([g]), self.grad * self.op1.forward()
+        else:
+            raise InvalidShapeError("wrong gradient shape: {0} and variable shape: {1}, {2}".
+                                    format(self.grad.shape, shape_op1, shape_op2))

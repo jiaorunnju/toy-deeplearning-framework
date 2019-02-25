@@ -1,6 +1,5 @@
 import numpy as np
 import dllib
-from dllib.loss import mse_loss
 from dllib.optimizer import GradientDescent
 
 N = 1000
@@ -24,7 +23,7 @@ loss = dllib.reduce_mean((pred-label)*(pred-label))
 loss.check_shape()
 
 optimizer = GradientDescent(loss, 0.01)
-optimizer.train(500, verbose=True)
+optimizer.optimize(500, verbose=True)
 
 print("w is: ", w.forward())
 print("b is: ", b.forward())

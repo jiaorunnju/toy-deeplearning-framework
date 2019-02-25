@@ -72,6 +72,13 @@ class IOperation:
         else:
             raise NotImplementedError
 
+    def __radd__(self, other):
+        if isinstance(other, (float, int)):
+            from .operations import AddNumOp
+            return AddNumOp(self, other)
+        else:
+            raise NotImplementedError
+
     def __sub__(self, other):
         if isinstance(other, IOperation):
             from .operations import SubOp
@@ -79,6 +86,13 @@ class IOperation:
         elif isinstance(other, (float, int)):
             from .operations import SubNumOp
             return SubNumOp(self, other)
+        else:
+            raise NotImplementedError
+
+    def __rsub__(self, other):
+        if isinstance(other, (float, int)):
+            from .operations import RSubNumOp
+            return RSubNumOp(self, other)
         else:
             raise NotImplementedError
 
@@ -110,6 +124,16 @@ class IOperation:
         if isinstance(other, (int, float)):
             from .operations import DivNumOp
             return DivNumOp(self, other)
+        elif isinstance(other, IOperation):
+            from .operations import DivOp
+            return DivOp(self, other)
+        else:
+            raise NotImplementedError
+
+    def __rtruediv__(self, other):
+        if isinstance(other, (int, float)):
+            from .operations import DivedNumOp
+            return DivedNumOp(self, other)
         else:
             raise NotImplementedError
 

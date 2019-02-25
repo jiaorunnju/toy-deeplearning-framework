@@ -21,12 +21,12 @@ expected to have:
 - [x] automatic gradient
 - [x] gradient descent
 - [x] linear regression
-- [ ] softmax regression
+- [x] logistic regression
 - [ ] utilities for SGD
 - [ ] different activation functions
 - [x] useful math functions
 
-Here is a simple code for linear regression:
+Here is a simple code example for linear regression:
 
 ```python
 import numpy as np
@@ -59,7 +59,7 @@ loss = dllib.reduce_mean((pred-label)*(pred-label))
 loss.check_shape()
 
 optimizer = GradientDescent(loss, 0.01)
-optimizer.train(500, verbose=True)
+optimizer.optimize(500, verbose=True)
 
 print("w is: ", w.forward())
 print("b is: ", b.forward())
@@ -68,16 +68,72 @@ print("b is: ", b.forward())
 Output is:
 
 ```
-[    0/500] loss: 21.017926
-[   50/500] loss: 2.782524
-[  100/500] loss: 0.371020
-[  150/500] loss: 0.049847
-[  200/500] loss: 0.006750
-[  250/500] loss: 0.000921
-[  300/500] loss: 0.000127
-[  350/500] loss: 0.000018
-[  400/500] loss: 0.000002
-[  450/500] loss: 0.000000
-w is:  [1.00003636 1.99986063]
-b is:  [3.99982599]
+[  0/500] loss: 21.799619
+[ 50/500] loss: 2.675228
+[100/500] loss: 0.330923
+[150/500] loss: 0.041273
+[200/500] loss: 0.005191
+[250/500] loss: 0.000658
+[300/500] loss: 0.000084
+[350/500] loss: 0.000011
+[400/500] loss: 0.000001
+[450/500] loss: 0.000000
+w is:  [1.00002293 1.99996664]
+b is:  [3.99984924]
+```
+
+Also a code example for logistic regression:
+
+```python
+import numpy as np
+import dllib
+from dllib.optimizer import GradientDescent
+from dllib.loss import logistic_loss_with_logits
+import matplotlib.pyplot as plt
+
+N = 100
+DIM = 2
+x1 = np.random.randn(N, DIM)
+x2 = np.random.randn(N, DIM)
+y1 = np.ones(N)
+y2 = -np.ones(N)
+x1 += np.array([1, 1])
+x2 += np.array([-1, -1])
+
+X = np.concatenate((x1, x2), axis=0)
+Y = np.concatenate((y1, y2))
+
+data = dllib.Placeholder((2 * N, 2))
+data.feed(X)
+label = dllib.Placeholder((2 * N,))
+label.feed(Y)
+
+w = dllib.Variable(np.array([0.0, 0.0]), 'w')
+b = dllib.Variable(np.array([0.0]), 'b')
+
+t = data @ w + b
+loss = logistic_loss_with_logits(t, label)
+
+optimizer = GradientDescent(loss, 0.01)
+optimizer.optimize(500)
+
+pred = np.sign(t.forward())
+acc = pred[((pred - Y) == 0)].size/(2*N)
+print("accuracy is: {0}".format(acc))
+```
+
+Output is:
+
+```
+[  0/500] loss: 0.693147
+[ 50/500] loss: 0.491806
+[100/500] loss: 0.394983
+[150/500] loss: 0.340265
+[200/500] loss: 0.305361
+[250/500] loss: 0.281173
+[300/500] loss: 0.263402
+[350/500] loss: 0.249776
+[400/500] loss: 0.238984
+[450/500] loss: 0.230216
+accuracy is: 0.915
 ```
