@@ -16,4 +16,6 @@ def absolute_loss(pred, y):
 
 def logistic_loss_with_logits(logits, y):
     t = logits * y
-    return -reduce_mean(log(max(1/(1+exp(-t)), 1e-7)))
+    return -sum(log(max(1/(1+exp(-t)), 1e-7)))
+
+

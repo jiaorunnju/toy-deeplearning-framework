@@ -2,7 +2,7 @@
 This file contains useful math operations, use functions as wrappers
 """
 
-from .mathops import ExpOp, LnOp, MeanOp, AbsOp, PowOp, MaxOp, MinOp, MaxNumOp, MinNumOp
+from .mathops import ExpOp, LnOp, MeanOp, AbsOp, PowOp, MaxOp, MinOp, MaxNumOp, MinNumOp, SumOp
 
 
 def exp(op):
@@ -61,3 +61,7 @@ def min(op1, op2):
         return MinNumOp(op1, op2)
     else:
         return MinOp(op1, op2)
+
+
+def sum(op):
+    return SumOp(op)

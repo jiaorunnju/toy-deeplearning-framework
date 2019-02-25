@@ -5,7 +5,7 @@ import sys
 import traceback
 
 from numpy import ndarray
-from numpy import exp, log, mean, ones_like, abs, sign, power, maximum, zeros, minimum
+from numpy import exp, log, mean, ones_like, abs, sign, power, maximum, zeros, minimum, sum
 
 from dllib.ops.exceptions import InvalidShapeError
 from .IOps import UnaryOp, IOperation, BinaryOp
@@ -47,6 +47,27 @@ class MeanOp(UnaryOp):
     def compute_gradient(self):
         t = self.op.forward()
         return self.grad * ones_like(t) / t.size
+
+    def check_shape(self):
+        try:
+            self.op.check_shape()
+            return (1,)
+        except InvalidShapeError as err:
+            print(err.message)
+            traceback.print_exc()
+            sys.exit(sys.exit(1))
+
+
+class SumOp(UnaryOp):
+    def __init__(self, op: IOperation):
+        super().__init__(op)
+
+    def compute_value(self):
+        return sum(self.op.forward())
+
+    def compute_gradient(self):
+        t = self.op.forward()
+        return self.grad * ones_like(t)
 
     def check_shape(self):
         try:

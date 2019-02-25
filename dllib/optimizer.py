@@ -44,4 +44,5 @@ class GradientDescent(Optimizer):
                 print("[{0:{1}d}/{2}] loss: {3:4f}".format(i, num_len, n_rounds, squeeze(err)))
             for v in var:
                 v.apply_gradient(v.grad, self.lr)
+
             self.loss.reset()

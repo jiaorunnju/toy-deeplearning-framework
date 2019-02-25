@@ -22,9 +22,9 @@ expected to have:
 - [x] gradient descent
 - [x] linear regression
 - [x] logistic regression
-- [ ] utilities for SGD
-- [ ] different activation functions
 - [x] useful math functions
+- [x] multi-layer network
+- [ ] utilities for SGD
 
 Here is a simple code example for linear regression:
 

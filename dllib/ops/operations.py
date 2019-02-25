@@ -333,7 +333,7 @@ class NegOp(UnaryOp):
 class MMulOp(BinaryOp):
     """
     This is vector multiply operation, in the form of
-    y = Ax, where y is m*1, A is m*n, x is n*1
+    y = Ax, where y is m*k, A is m*n, x is n*k
     """
 
     def __init__(self, data: IOperation, vec: IOperation):
@@ -347,6 +347,11 @@ class MMulOp(BinaryOp):
                 return False, None
         elif len(shape1) == 1 and len(shape2) == 1 and shape1[0] == shape2[0]:
             return True, (1,)
+        elif len(shape1) == 2 and len(shape2) == 2:
+            if shape1[1] == shape2[0]:
+                return True, (shape1[0], shape2[1])
+            else:
+                return False, None
         else:
             return False, None
 
@@ -364,8 +369,10 @@ class MMulOp(BinaryOp):
 
         if len(A.shape) == 1:
             return squeeze(outer(self.grad, x)), self.grad * A
-        else:
+        elif len(self.grad.shape) == 1:
             return squeeze(outer(self.grad, x)), A.T.dot(self.grad)
+        else:
+            return self.grad.dot(x.T), A.T.dot(self.grad)
 
 
 class MulOp(BinaryOp):
